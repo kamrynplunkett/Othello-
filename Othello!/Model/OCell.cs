@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Othello_.Model
 {
-    enum CellState
+    public enum CellState
     {
         Empty,
         Black,
@@ -15,7 +15,7 @@ namespace Othello_.Model
     internal class OCell
     {
         private CellState State;
-        
+
         public OCell()
         {
             State = CellState.Empty;
@@ -34,11 +34,17 @@ namespace Othello_.Model
         public void Flip()
         {
             if (State == CellState.Black)
+            {
                 State = CellState.White;
+            }
             else if (State == CellState.White)
+            {
                 State = CellState.Black;
+            }
             else if (State == CellState.Empty)
-                throw new InvalidOperationException("Cannot flip an empty cell. BAD DEV:(");
+            {
+                throw new InvalidOperationException("Uh Oh! Can't flip an empty cell.");
+            }
         }
     }
 }
