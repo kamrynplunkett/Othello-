@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -27,10 +27,12 @@ namespace Othello_.Model
 
         public OBoard(string OBState)
         {
-            OBState = OBState.Trim();
-            OBState = OBState.ToUpper();
-            if (OBState == null || OBState.Length != 64)
+            if (string.IsNullOrWhiteSpace(OBState) || OBState.Trim().Length != 64)
                 throw new ArgumentException("Invalid board state string. Must be exactly 64 characters long.");
+
+            OBState = OBState.Trim().ToUpper();
+
+
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)
@@ -49,7 +51,9 @@ namespace Othello_.Model
                         Cells[i, j].Place(CellState.White);
                     }
                     else
+                    {
                         throw new ArgumentException($"Invalid character '{c}' in board state string. Use 'E' for empty, 'B' for black, and 'W' for white.");
+                    }
                 }
             }
         }
@@ -60,41 +64,56 @@ namespace Othello_.Model
             foreach (OCell cell in Board.Cells)
             {
                 if (cell.GetState() == CellState.Empty)
+                {
                     BState += 'E';
+                }
                 else if (cell.GetState() == CellState.Black)
+                {
                     BState += 'B';
+                }
                 else if (cell.GetState() == CellState.White)
+                {
                     BState += 'W';
+                }
             }
             return BState;
         }
 
-        public static OBoard Deserialize(String OBState)
+        public static OBoard Deserialize(string OBState)
         {
-            OBState = OBState.Trim();
-            OBState = OBState.ToUpper();
-            if (OBState == null || OBState.Length != 64)
+            if (string.IsNullOrWhiteSpace(OBState) || OBState.Trim().Length != 64)
                 throw new ArgumentException("Invalid board state string. Must be exactly 64 characters long.");
+
+            OBState = OBState.Trim().ToUpper();
             OBoard board = new OBoard();
+
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)
                 {
                     char c = OBState[i * 8 + j];
-                    if (c == 'E')
-                        board.Cells[i, j] = new OCell();
-                    else if (c == 'B')
+
+                    board.Cells[i, j] = new OCell();
+
+                    if (c == 'B')
+                    {
                         board.Cells[i, j].Place(CellState.Black);
+                    }
                     else if (c == 'W')
+                    {
                         board.Cells[i, j].Place(CellState.White);
-                    else
+                    }
+                    else if (c != 'E')
+                    {
                         throw new ArgumentException($"Invalid character '{c}' in board state string. Use 'E' for empty, 'B' for black, and 'W' for white.");
+                    }
                 }
             }
-            return board;
+
+            return board; 
         }
 
-        public List<int> GetMoves (CellState player)
+        public List<int> GetMoves(CellState player)
         {
             if (player == CellState.Empty)
                 throw new ArgumentException("Player cannot be empty.");
@@ -112,15 +131,22 @@ namespace Othello_.Model
             return moves;
         }
 
-        private bool IsValidMove(int x, int y, CellState player)
+        public bool IsValidMove(int x, int y, CellState player)
         {
+            if (x < 0 || x >= 8 || y < 0 || y >= 8)
+                return false;
+
             if (Cells[x, y].GetState() != CellState.Empty)
                 return false;
+
             if (player == CellState.Empty)
                 throw new ArgumentException("Player cannot be empty.");
+
             CellState opponent = (player == CellState.Black) ? CellState.White : CellState.Black;
+
             int[] dx = { -1, -1, -1, 0, 0, 1, 1, 1 };
             int[] dy = { -1, 0, 1, -1, 1, -1, 0, 1 };
+
             for (int dir = 0; dir < 8; dir++)
             {
                 int nx = x + dx[dir];
@@ -148,6 +174,93 @@ namespace Othello_.Model
                 }
             }
             return false;
+        }
+
+        public CellState GetCellState(int row, int col)
+        {
+            return Cells[row, col].GetState();
+        }
+
+        public bool ApplyMove(int x, int y, CellState player)
+        {
+            if (!IsValidMove(x, y, player))
+                return false;
+
+            CellState opponent = (player == CellState.Black) ? CellState.White : CellState.Black;
+            int[] dx = { -1, -1, -1, 0, 0, 1, 1, 1 };
+            int[] dy = { -1, 0, 1, -1, 1, -1, 0, 1 };
+
+            Cells[x, y].Place(player);
+
+            for (int dir = 0; dir < 8; dir++)
+            {
+                int nx = x + dx[dir];
+                int ny = y + dy[dir];
+                List<OCell> toFlip = new List<OCell>();
+
+                while (nx >= 0 && nx < 8 && ny >= 0 && ny < 8)
+                {
+                    if (Cells[nx, ny].GetState() == opponent)
+                    {
+                        toFlip.Add(Cells[nx, ny]);
+                    }
+                    else if (Cells[nx, ny].GetState() == player)
+                    {
+                        if (toFlip.Count > 0)
+                        {
+                            foreach (OCell cell in toFlip)
+                            {
+                                cell.Flip();
+                            }
+                        }
+                        break;
+                    }
+                    else
+                    {
+                        break;
+                    }
+
+                    nx += dx[dir];
+                    ny += dy[dir];
+                }
+            }
+
+            return true;
+        }
+
+        public int CountPieces(CellState player)
+        {
+            int count = 0;
+
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    if (Cells[i, j].GetState() == player)
+                        count++;
+                }
+            }
+
+            return count;
+        }
+
+        public bool IsFull()
+        {
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    if (Cells[i, j].GetState() == CellState.Empty)
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        public bool HasAnyMoves(CellState player)
+        {
+            return GetMoves(player).Count > 0;
         }
     }
 }
